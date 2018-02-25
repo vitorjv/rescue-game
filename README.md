@@ -6,7 +6,7 @@ Uma pequena cidade localizada no nordeste de Myanmar foi invadida por um grupo r
 
 # Objetivos Específicos
 
-You really have to try save the hostage's lives, rescuing and let them safe. So, if the helicopter get destroyed or any hostage deaths, the game will be restarted. The point system is the simple count of the hostage safe. The game ends when safe all the hostages.
+Deve-se a todo custo tentar salvar a vida dos reféns, resgatando e deixando-os a salvo. Em virtude disso, em caso de explosão do helicóptero ou morte acidental de algum refém, o jogo será reiniciado. A pontuação será feita pela simples contagem dos reféns resgatados. O jogo se encerra quando conseguir resgatar todos os reféns.
 
 # Master Rescue
 
@@ -16,4 +16,4 @@ A small city in northeast of Myanmar was invaded by rebels who were expelled fro
 
 # Specific goals
 
-Deve-se a todo custo tentar salvar a vida dos reféns, resgatando e deixando-os a salvo. Em virtude disso, em caso de explosão do helicóptero ou morte acidental de algum refém, o jogo será reiniciado. A pontuação será feita pela simples contagem dos reféns resgatados. O jogo se encerra quando conseguir resgatar todos os reféns.
+You really have to try save the hostage's lives, rescuing and let them safe. So, if the helicopter get destroyed or any hostage deaths, the game will be restarted. The point system is the simple count of the hostage safe. The game ends when safe all the hostages.

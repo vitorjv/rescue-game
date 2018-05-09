@@ -528,11 +528,11 @@ function scene:create( event )
     
     physics.pause()  -- Temporarily pause the physics engine
     
-    local backGroup = display.newGroup()
+    backGroup = display.newGroup()
     sceneGroup:insert( backGroup ) 
-    local mainGroup = display.newGroup()  
+    mainGroup = display.newGroup()  
     sceneGroup:insert( mainGroup ) 
-    local uiGroup = display.newGroup()    
+    uiGroup = display.newGroup()    
     sceneGroup:insert( uiGroup ) 
     
     local background = display.newImageRect( backGroup, "img/background.png", 500, 300)
@@ -610,7 +610,7 @@ function scene:create( event )
         overFile, "left2.png",
         width = 45,           -- Largura do Botão
         height = 45,           -- Altura do Botão
-        onEvent = BotaoLeft  -- Função que o botão irá chamar
+        onEvent = tiroHelicoptero  -- Função que o botão irá chamar
     }
 end
 

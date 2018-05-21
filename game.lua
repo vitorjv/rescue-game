@@ -219,12 +219,14 @@ local enemySheet = graphics.newImageSheet( "inimigos.png", sheetOptions3 )
 local refensSheet = graphics.newImageSheet( "refens.png", sheetOptions3 )
 local refensPulandoSheet = graphics.newImageSheet( "pulando.png", sheetOptions4 )
 local helicopteroFireSheet = graphics.newImageSheet( "helicopter-fire.png", sheetOptions5 )
+local helicopterRescueSheet = graphics.newImageSheet( "helicopter2-spritesheet.png", sheetOptions )
 
 local score = 0
 local life = 100
-local died = false
+died = false
 local helicopteroChanged = false
 local paused = false
+rescueButtonCreated = false
 
 local enemiesTable = {}
 local hostagesTable = {}
@@ -290,16 +292,20 @@ local function createHostage()
     if #hostagesTable <= 2 then
         time = os.time()
         diff = time - inicio
-        if diff / (#hostagesTable + 1 + score) > 20 then
-            local newHostage = display.newSprite( refensSheet, inimigos)
+        if diff / (#hostagesTable + 1 + score) > 5 then
+            newHostage = display.newSprite( refensSheet, inimigos)
             physics.addBody(newHostage, "dynamic", { friction = 0, radius=5, bounce=0.2, isSensor = true })
             newHostage.myName = "hostage"
             newHostage.isRescue = false
             newHostage.x = -20
             newHostage.y = display.contentHeight - 100
-            newHostage:setLinearVelocity(40,0)
+            --newHostage:setLinearVelocity(40,0)
+
+            transition.to( newHostage, { time=5500, x=math.random(100,display.contentCenterX), y=(display.contentHeight - 100), 
+                onComplete=trocaSpritRefem } )
             newHostage:scale(0.5,0.5)
             newHostage:play()
+            newHostage.waiting = false
             table.insert(hostagesTable, newHostage)
         end
     end
@@ -314,7 +320,9 @@ local function createEnemy()
     newEnemy.isAtirador = false
     newEnemy:scale(0.5,0.5)
     newEnemy:play()
-    newEnemy:setLinearVelocity(math.random(-30,-10),0)
+    newEnemy:setLinearVelocity(math.random(-40,-20),0)
+    --transition.to( newEnemy, { time=math.random(4500,5500), x=math.random(display.contentCenterX+100,display.contentWidth-50), y=(display.contentHeight - 102), 
+    --            onComplete=becameShooter } )
     table.insert( enemiesTable, newEnemy )
 end
 
@@ -343,7 +351,6 @@ local function verifyCreateEnemy()
     end 
 end
 
-
 local function verifyBecameShooter(shooter)
     if (math.random() > 0.9) or (shooter.x < display.contentCenterX-30) then
         x = shooter.x
@@ -368,38 +375,30 @@ local function verifyBecameShooter(shooter)
     end
 end
 
-local function verifyPositionHostage(hostage)
-    if hostage.isRescue == false then
-        if hostage.x > display.contentCenterX - 50 then
-            x = hostage.x
-            y = hostage.y
-            display.remove(hostage)
-            
-            for i = #hostagesTable, 1, -1 do
-                local refem = hostagesTable[i]
-                if  (refem == hostage) then
-                    table.remove(hostagesTable, i)
-                end
-            end
-
-            local newHostage = display.newSprite( refensPulandoSheet, inimigos)
-            physics.addBody(newHostage, "dynamic", { friction = 0, radius=5, bounce=0.2, isSensor = true })
-            newHostage.myName = "hostage"
-            newHostage.waiting = true
-            newHostage.x = x
-            newHostage.y = y
-            newHostage:scale(0.75,0.75)
-            newHostage:play()
-            table.insert(hostagesTable, newHostage)
+function trocaSpritRefem(hostage)
+    print('trocando hostage')
+    print(hostage.myName)
+    x = hostage.x
+    y = hostage.y
+    display.remove(hostage)
+    
+    for i = #hostagesTable, 1, -1 do
+        local refem = hostagesTable[i]
+        if  (refem == hostage) then
+            table.remove(hostagesTable, i)
         end
     end
-end
 
-local function verifyRescueHostage(hostage)
-    if ((hostage.x > helicoptero.x - 20 and hostage.x < helicoptero.x + 20) and (hostage.isRescue == false)) then
-        hostage.isRescue = true
-        hostage:setLinearVelocity(0,-20)
-    end
+    local newHostage = display.newSprite( refensPulandoSheet, inimigos)
+    physics.addBody(newHostage, "dynamic", { friction = 0, radius=5, bounce=0.2, isSensor = true })
+    newHostage.myName = "hostage"
+    newHostage.waiting = true
+    newHostage.isRescue = false
+    newHostage.x = x
+    newHostage.y = y
+    newHostage:scale(0.75,0.75)
+    newHostage:play()
+    table.insert(hostagesTable, newHostage)
 end
 
 local function verifyHelicopterAngular()
@@ -414,12 +413,141 @@ local function verifyHelicopterAngular()
     end
 end
 
+function chamarHelicoptero()
+    display.remove(callHelicopterButton)
+    helicoptero2 = display.newSprite( helicopterRescueSheet, sequenceData)
+    helicoptero2.myName="helicoptero2"
+    helicoptero2.y=140
+    helicoptero2.x=-10
+    helicoptero2:rotate(10)
+    helicoptero2:scale(0.20,0.20)
+    helicoptero2:play()
+    physics.addBody(helicoptero2, "dynamic", { radius=30, bounce=0 })
+    
+    --helicoptero2:setLinearVelocity(50,0)
+    resgatarRefens()
+end
+
+function resgatarRefens()
+    local refens = {}
+    for i = #hostagesTable, 1, -1 do
+        local refem = hostagesTable[i]
+        if refem.waiting then
+            table.insert(refens,refem.x)
+        end
+    end
+    table.sort(refens)
+    a(refens)
+end
+
+function tamanhoCorda()
+    display.remove(rope)
+    rope = display.newImageRect( backGroup, "img/rope.png", 4, -140+ref.y)
+    rope.x = ref.x
+    rope.y = (140 + ref.y)/2
+end
+
+function a(refensTable)
+    transition.to( helicoptero2, { x=refensTable[1], y=140, time=1000,
+    onComplete = function()
+        
+        rope = display.newImageRect( backGroup, "img/rope.png", 4, 100)
+        rope.x = helicoptero2.x
+        rope.y = 200
+        for z = #hostagesTable, 1, -1 do
+            if hostagesTable[z].x == refensTable[1] then
+                ref = hostagesTable[z]
+                local ropeTimer = timer.performWithDelay( 50, tamanhoCorda, 200 )
+                transition.to( ref, { x=ref.x, y=140, time=2000,
+                    onComplete = function()
+                        timer.cancel(ropeTimer) 
+                        score = score + 1
+                        scoreText.text = "Score: " .. score
+                        table.remove (hostagesTable, z)
+                        display.remove(ref)
+                        display.remove(rope)
+                        table.remove(refensTable,1)
+                        if (#refensTable > 0) then
+                            a(refensTable)
+                        else
+                            helicoptero2:setLinearVelocity(100,0)
+                        end
+                    end
+                })
+                local ropeTimer = timer.performWithDelay( 50, tamanhoCorda(rope, ref), 200 )
+                    
+            end
+        end    
+    end
+    } )
+end
+
+local function verificaRefem()
+    for i = #hostagesTable, 1, -1 do
+        local refem = hostagesTable[i]        
+        if (refem.waiting == true) then
+            if ((hostage.x > helicoptero2.x - 20 and hostage.x < helicoptero2.x + 20) and (hostage.isRescue == false)) then
+                hostage.isRescue = true
+                helicoptero2:setLinearVelocity(0,0)
+                hostage:setLinearVelocity(0,-20)
+            end
+        end
+    end
+    if (helicoptero2.x > display.contentWidth + 50) then
+        timer.cancel(verificaRefemTimer)
+        display.remove(helicopter2)
+    end
+end
+
+function createRescueButton() 
+    rescueButtonCreated = true
+    callHelicopterButton = widget.newButton {
+        id = "botao4",         -- Identificador do Botão
+        left = display.contentWidth-130,       -- Posição X que o botão aparecerá na tela
+        top = display.contentHeight-78,             -- Posição Y que o botão aparecerá na tela
+        defaultFile = "img/call-helicopter.png",
+        width = 50,           -- Largura do Botão
+        height = 50,           -- Altura do Botão
+        onEvent = handleRescueButtonEvent  -- Função que o botão irá chamar
+    }
+end
+
 local function gameLoop()
     if (not paused) then
         if (not died) then
-            --tiroHelicoptero() 
-            verifyCreateEnemy()
-            createHostage()
+            if helicoptero2 ~= nil then
+                if helicoptero2.x > display.contentWidth + 100 then
+                    rescueButtonCreated = false
+                    display.remove(helicoptero2)
+                    helicoptero2 = nil
+                end
+            end
+            for i = #enemiesTable, 1, -1 do
+                local enemy = enemiesTable[i]
+                if ( enemy.x < -20 or
+                    enemy.x > display.contentWidth + 65 or
+                    enemy.y > display.contentHeight + 20 )
+                then
+                    display.remove( enemy )
+                    table.remove( enemiesTable, i )
+                    break
+                end
+                if (enemy.isAtirador) and (not died) then
+                    atirar(enemy)
+                else
+                    verifyBecameShooter(enemy)
+                end 
+            end
+            local refensWaiting = 0
+            for i = #hostagesTable, 1, -1 do
+                local refem = hostagesTable[i]
+                if (refem.waiting) then
+                    refensWaiting = refensWaiting + 1
+                end
+            end
+            if (refensWaiting > 0) and (not rescueButtonCreated) then
+                createRescueButton()
+            end        
             verifyHelicopterAngular()
         else
             if (not helicopteroChanged) then
@@ -441,37 +569,16 @@ local function gameLoop()
                 helicopteroChanged = true
             end
         end
-        
-        for i = #enemiesTable, 1, -1 do
-            local enemy = enemiesTable[i]
-            if ( enemy.x < -20 or
-                enemy.x > display.contentWidth + 65 or
-                enemy.y > display.contentHeight + 20 )
-            then
-                display.remove( enemy )
-                table.remove( enemiesTable, i )
-                break
-            end
-            if (enemy.isAtirador) and (not died) then
-                atirar(enemy)
-            else
-                verifyBecameShooter(enemy)
-            end 
-        end
-
-        for i = #hostagesTable, 1, -1 do
-            local refem = hostagesTable[i]        
-            if  (refem.y > helicoptero.y - 20) and (refem.y < helicoptero.y + 20) then
-                refem.isRescue = true
-                score = score + 1
-                scoreText.text = "Score: " .. score
-                table.remove (hostagesTable, i)
-                display.remove( refem )
-            end
-            verifyRescueHostage(refem)
-            verifyPositionHostage(refem)
-        end
     end
+end
+
+function gameOver(event)
+    -- obj1 = event.object1
+    -- obj2 = event.object2
+    -- if (obj1.myName == "piso") or (obj2.myName == "piso") then
+        composer.removeScene("game")
+        composer.gotoScene("end", { time=800, effect="crossFade" } )
+    --end
 end
 
 local function onCollision(event)
@@ -483,6 +590,7 @@ local function onCollision(event)
             ((obj2.myName == "helicopteroFire") and (obj1.myName == "piso")) then
                 helicopteroFire.angularVelocity = 0
                 helicopteroFire:setLinearVelocity(0,0)
+                gameOver()
         end
 
         if ((obj1.myName == "helicoptero") and (obj2.myName == "bullet")) or
@@ -507,17 +615,28 @@ local function onCollision(event)
             end
             display.remove(obj1)
             display.remove(obj2)
-        elseif ((obj1.myName == "laser") and (obj2.myName == "piso")) or
-    ((obj2.myName == "laser") and (obj1.myName == "piso")) then
-            if (obj1.myName == "laser") then
-                display.remove(obj1)
-            else
+        elseif ((obj1.myName == "laser") and (obj2.myName == "piso")) then
+            display.remove(obj1)
+        elseif ((obj2.myName == "laser") and (obj1.myName == "piso")) then
                 display.remove(obj2)
-            end
-        elseif ((obj1.myName == "laser") and (obj2.myName == "hostage")) or
-        ((obj2.myName == "laser") and (obj1.myName == "hostage")) then 
-
+        elseif ((obj1.myName == "laser") and (obj2.myName == "helicoptero2")) then 
+            display.remove(obj1)
+            obj2.angularVelocity = 40
+            obj2:setLinearVelocity(10,80)
+            --gameOver()
+        elseif ((obj2.myName == "laser") and (obj1.myName == "helicoptero2")) then 
+            display.remove(obj2)
+            obj1.angularVelocity = 40
+            obj1:setLinearVelocity(10,80)
+            --gameOver()
+        elseif ((obj1.myName == "helicoptero2") and (obj2.myName == "piso")) or
+            ((obj2.myName == "helicoptero2") and (obj1.myName == "piso")) then 
+                gameOver()
+        elseif ((obj1.myName == "helicoptero2") and (obj2.myName == "enemy")) or
+            ((obj2.myName == "helicoptero2") and (obj1.myName == "enemy")) then 
+                gameOver()
         end
+
     end
 end
 
@@ -578,9 +697,9 @@ function scene:create( event )
     livesText = display.newText( uiGroup, "Life: " .. life, 40, 40, native.systemFont, 16 )
     scoreText = display.newText( uiGroup, "Score: " .. score, 130, 40, native.systemFont, 16 )
 
-    local widget = require "widget"
+    widget = require "widget"
 
-    local leftButton = widget.newButton {
+    leftButton = widget.newButton {
         id = "botao1",         -- Identificador do Botão
         left = 20,       -- Posição X que o botão aparecerá na tela
         top = display.contentHeight-70,             -- Posição Y que o botão aparecerá na tela
@@ -590,19 +709,19 @@ function scene:create( event )
         height = 35,           -- Altura do Botão
         onEvent = BotaoLeft  -- Função que o botão irá chamar
     }
-
-    local rightButton = widget.newButton {
+    
+    rightButton = widget.newButton {
         id = "botao2",         -- Identificador do Botão
-        left = 65,       -- Posição X que o botão aparecerá na tela
-        top = display.contentHeight-71,             -- Posição Y que o botão aparecerá na tela
-        defaultFile = "img/arrow-alt-circle-right.png",
-        overFile, "right2.png",
-        width = 35,           -- Largura do Botão
-        height = 35,           -- Altura do Botão
-        onEvent = BotaoRight  -- Função que o botão irá chamar
+            left = 65,       -- Posição X que o botão aparecerá na tela
+            top = display.contentHeight-71,             -- Posição Y que o botão aparecerá na tela
+            defaultFile = "img/arrow-alt-circle-right.png",
+            overFile, "right2.png",
+            width = 35,           -- Largura do Botão
+            height = 35,           -- Altura do Botão
+            onEvent = BotaoRight  -- Função que o botão irá chamar
     }
-
-    local shootButton = widget.newButton {
+                
+    shootButton = widget.newButton {
         id = "botao3",         -- Identificador do Botão
         left = display.contentWidth-80,       -- Posição X que o botão aparecerá na tela
         top = display.contentHeight-75,             -- Posição Y que o botão aparecerá na tela
@@ -610,9 +729,23 @@ function scene:create( event )
         overFile, "left2.png",
         width = 45,           -- Largura do Botão
         height = 45,           -- Altura do Botão
-        onEvent = tiroHelicoptero  -- Função que o botão irá chamar
+        onEvent = handleShootButtonEvent  -- Função que o botão irá chamar
     }
 end
+
+function handleShootButtonEvent( event ) 
+    if ( "ended" == event.phase ) then
+        tiroHelicoptero()
+    end
+end
+
+function handleRescueButtonEvent( event ) 
+    if ( "ended" == event.phase ) then
+        chamarHelicoptero()
+    end
+end
+
+
 
 function scene:show( event )
     inicio = os.time()
@@ -625,9 +758,10 @@ function scene:show( event )
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
         physics.start()
-        print('oi')
 		Runtime:addEventListener( "collision", onCollision )
-		gameLoopTimer = timer.performWithDelay( 500, gameLoop, 0 )
+        gameLoopTimer = timer.performWithDelay( 500, gameLoop, 0 )
+        enemyTimer = timer.performWithDelay( 1500, verifyCreateEnemy, 0 )
+        refemTimer = timer.performWithDelay( 1500, createHostage, 0 )
     end
 end
 
@@ -647,6 +781,32 @@ function scene:hide( event )
         physics.pause()
         composer.removeScene( "game" )
     end
+end
+
+function scene:destroy( event )
+    local sceneGroup = self.view
+    physics.pause()
+    display.remove(background)
+    display.remove(piso)
+    display.remove(shootButton)
+    display.remove(rightButton)
+    display.remove(leftButton)
+    display.remove(helicopteroFire)
+    display.remove(helicoptero)
+    display.remove(helicoptero2)
+    for i = #enemiesTable, 1, -1 do
+        local enemy = enemiesTable[i]
+        table.remove( enemiesTable, i )
+        display.remove(enemy)
+    end
+    for i = #hostagesTable, 1, -1 do
+        local enemy = hostagesTable[i]
+        table.remove( hostagesTable, i )
+        display.remove(enemy)
+    end
+    timer.cancel(gameLoopTimer)
+    timer.cancel(enemyTimer)
+    timer.cancel(refemTimer)
 end
 
 -- -----------------------------------------------------------------------------------

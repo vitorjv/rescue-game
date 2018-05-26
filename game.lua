@@ -6,6 +6,12 @@ local physics = require( "physics" )
 physics.start()
 physics.setGravity( 0, 0 )
 
+audio.reserveChannels( 4 )
+audio.setVolume( 0.2, { channel=1 } )
+audio.setVolume( 0.3, { channel=2 } )
+audio.setVolume( 0.2, { channel=3 } )
+
+
 local sheetOptions =
 {
     frames =
@@ -242,6 +248,10 @@ local backGroup
 local mainGroup
 local uiGroup
 
+local helicopterSound
+local helicopter2Sound
+local helicopterShotSound
+
 local function BotaoLeft(event)
         
     if (helicoptero.x > -5) then 
@@ -280,6 +290,8 @@ local function tiroHelicoptero()
     laser:toBack()
     rotacao = helicoptero.rotation
     xDestino = 2*display.contentWidth
+
+    audio.play(helicopterShotSound, { channel=2 })
     
     yDestino = (math.tan(rotacao*3.1415/180) * xDestino)
     yDestino = yDestino + helicoptero.y + 50
@@ -352,7 +364,7 @@ local function verifyCreateEnemy()
 end
 
 local function verifyBecameShooter(shooter)
-    if (math.random() > 0.9) or (shooter.x < display.contentCenterX-30) then
+    if (math.random() > 0.9) or (shooter.x < display.contentCenterX+20) then
         x = shooter.x
         y = shooter.y
         display.remove(shooter)
@@ -423,6 +435,7 @@ function chamarHelicoptero()
     helicoptero2:scale(0.20,0.20)
     helicoptero2:play()
     physics.addBody(helicoptero2, "dynamic", { radius=30, bounce=0 })
+    audio.play(helicopter2Sound, { channel=3, loops=-1 })
     
     --helicoptero2:setLinearVelocity(50,0)
     resgatarRefens()
@@ -520,6 +533,7 @@ local function gameLoop()
                     rescueButtonCreated = false
                     display.remove(helicoptero2)
                     helicoptero2 = nil
+                    audio.stop(3)
                 end
             end
             for i = #enemiesTable, 1, -1 do
@@ -573,12 +587,8 @@ local function gameLoop()
 end
 
 function gameOver(event)
-    -- obj1 = event.object1
-    -- obj2 = event.object2
-    -- if (obj1.myName == "piso") or (obj2.myName == "piso") then
-        composer.removeScene("game")
-        composer.gotoScene("end", { time=800, effect="crossFade" } )
-    --end
+    composer.removeScene("game")
+    composer.gotoScene("end", { time=800, effect="crossFade" } )
 end
 
 local function onCollision(event)
@@ -731,6 +741,11 @@ function scene:create( event )
         height = 45,           -- Altura do Botão
         onEvent = handleShootButtonEvent  -- Função que o botão irá chamar
     }
+
+    helicopterSound = audio.loadSound( "sounds/helicopter.wav" )
+    helicopter2Sound = audio.loadSound( "sounds/helicopter2.wav" )
+    helicopterShotSound = audio.loadSound( "sounds/helicopter-shot.wav" )
+
 end
 
 function handleShootButtonEvent( event ) 
@@ -745,8 +760,6 @@ function handleRescueButtonEvent( event )
     end
 end
 
-
-
 function scene:show( event )
     inicio = os.time()
     local sceneGroup = self.view
@@ -754,10 +767,14 @@ function scene:show( event )
  
     if ( phase == "will" ) then
         -- Code here runs when the scene is still off screen (but is about to come on screen)
- 
+
+
+        audio.play(helicopterSound, { channel=1, loops=-1 })
+        
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
         physics.start()
+        
 		Runtime:addEventListener( "collision", onCollision )
         gameLoopTimer = timer.performWithDelay( 500, gameLoop, 0 )
         enemyTimer = timer.performWithDelay( 1500, verifyCreateEnemy, 0 )
@@ -793,7 +810,12 @@ function scene:destroy( event )
     display.remove(leftButton)
     display.remove(helicopteroFire)
     display.remove(helicoptero)
+    helicoptero = nil
     display.remove(helicoptero2)
+    helicoptero2 = nil
+    if (rescueButtonCreated) then 
+        display.remove(callHelicopterButton)
+    end
     for i = #enemiesTable, 1, -1 do
         local enemy = enemiesTable[i]
         table.remove( enemiesTable, i )
